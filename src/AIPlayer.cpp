@@ -195,10 +195,6 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             color c = coloresJugador[i];
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++) {
-                // Si hacemos un movimiento ilegal
-                if (st.illegalMove()) {
-                    valoracionJugador += pierde; 
-                }
                 // Si ponemos una ficha en una casilla segura.
                 if (st.isSafePiece(c, j)) {
                     valoracionJugador += 10;
@@ -207,30 +203,179 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 if (st.getBoard().getPiece(c, j).get_type() == goal) {
                     valoracionJugador += 20;
                 }
-                // Si caemos en una trampa: DUDA.
-                Box casillaActual = st.getBoard().getPiece(c, j).get_box();
-                Box casillaInicial = std::get<2>(st.getLastMoves().back());
-                vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
-                bool hayTrampas = false;
-                for (int t = 0; t < trampas.size(); t++) {
-                    if (trampas[t].getType() == banana_trap) {
-                        hayTrampas = true;
-                        t = trampas.size();
-                    }
-                }
-                if (hayTrampas) {
-                    valoracionJugador -= 20;
-                }
                 // Si nos comen:
                 if (st.getBoard().getPiece(c, j).get_type() == home) {
                     valoracionJugador -= 40;
-                }                
+                }               
                 // Mayor importancia a las fichas más cercanas a la meta.
-                valoracionJugador += 74 - st.distanceToGoal(c,j);
-                
+                valoracionJugador += 74 - st.distanceToGoal(c,j);   
             }
 
-            if(st.isEatingMove() and st.getCurrentPlayerId() == jugador){
+            // Si hacemos un movimiento ilegal
+            if (st.illegalMove()) {
+                valoracionJugador += pierde; 
+            }
+
+            // Si pasamos por una trampa. DUDA
+            Box casillaActual = std::get<3>(st.getLastMoves().back());
+            Box casillaInicial = std::get<2>(st.getLastMoves().back());
+            vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
+            bool hayTrampas = false;
+            for (int t = 0; t < trampas.size(); t++) {
+                if (trampas[t].getType() == banana_trap) {
+                    hayTrampas = true;
+                    t = trampas.size();
+                }
+            }
+            if (hayTrampas) {
+                valoracionJugador -= 20;
+            }
+
+            // Si usamos un dado especial. (Puede hacer que se utilice champiñón y rayo)
+            if (st.isSpecialDice(st.getLastDice())) {
+                valoracionJugador += 5;
+            }
+
+            // Estrella.
+            if (st.isStarMove()) {
+
+                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
+
+                } else if () {
+
+                } else if () {
+
+                } else if () {
+
+                } else {
+                    valoracionJugador -= 20; // Evitar malgastar la estrella.
+                }
+            }
+            if (st.piecesDestroyedByStar().size() > 0) {
+                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                    if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 15;
+                    } else {
+                        valoracionJugador += 30;
+                    }
+                }
+            }
+
+            // MegaChampiñón.
+            if (st.()) {
+
+                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
+
+                } else if () {
+
+                } else if () {
+
+                } else if () {
+
+                } else {
+                    valoracionJugador -= 20; // Evitar malgastar la MegaChampiñón.
+                }
+            }
+            if (st.piecesDestroyedByStar().size() > 0) {
+                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                    if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 15;
+                    } else {
+                        valoracionJugador += 30;
+                    }
+                }
+            }
+
+            // Consigue dado especial.
+            if (st.itemAcquired()) {
+                valoracionJugador += 10;
+            }
+
+            // Caparazón Azul.
+            if (st.isBlueShellMove() && st.getCurrentPlayerId() == jugador) {
+                if (st.piecesDestroyedByBlueShell().size() == 2) {
+                    if(st.piecesDestroyedByBlueShell()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 20;
+                    } else {
+                        valoracionJugador += 35;
+                    }
+                    if(st.piecesDestroyedByBlueShell()[1].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 20;
+                    } else {
+                        valoracionJugador += 35;
+                    }
+                }
+                if (st.piecesDestroyedByBlueShell().size() == 1) {
+                    if(st.piecesDestroyedByBlueShell()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 20;
+                    } else {
+                        valoracionJugador += 35;
+                    }
+                }
+                if (st.piecesDestroyedByBlueShell().size() == 0) {
+                    valoracionJugador -= 15;
+                }
+            }
+
+            // Fantasma.
+            if (st.isBooMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 5;
+            }
+
+            // Cohete.
+            if (st.isBulletMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 25;
+                if (st.anyWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionJugador += 5; // Atraviesa barrera.
+                }
+                if (st.anyMegaWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionJugador += 10; // Atraviesa mega-barrera.
+                }
+            }
+
+            // Bocina.
+            if (st.isHornMove() && st.getCurrentPlayerId() == jugador) {
+                if (st.piecesDestroyedByHorn().size() > 0) {
+                    for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                        if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
+                            valoracionJugador -= 15;
+                        } else {
+                            valoracionJugador += 30;
+                        }
+                    }
+                } else {
+                    valoracionJugador -= 10; // Evitar malgastarlo.
+                }
+            }
+
+            // Caparazón rojo.
+            if (st.isRedShellMove() && st.getCurrentPlayerId() == jugador) {
+                if (st.piecesDestroyedByRedShell().size() == 2) {
+                    if(st.piecesDestroyedByRedShell()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 15;
+                    } else {
+                        valoracionJugador += 30;
+                    }
+                    if(st.piecesDestroyedByRedShell()[1].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 15;
+                    } else {
+                        valoracionJugador += 30;
+                    }
+                }
+                if (st.piecesDestroyedByRedShell().size() == 1) {
+                    if(st.piecesDestroyedByRedShell()[0].first == coloresJugador[(i+1)%2]){
+                        valoracionJugador -= 20;
+                    } else {
+                        valoracionJugador += 30;
+                    }
+                }
+                if (st.piecesDestroyedByRedShell().size() == 0) {
+                    valoracionJugador -= 10;
+                }
+            }
+ 
+            // Si nos comemos una ficha.
+            if(st.isEatingMove() && st.getCurrentPlayerId() == jugador){
                 if(st.eatenPiece().first == coloresJugador[(i+1)%2]){
                     // Si nos comemos pero estamos más cerca de ganar con el color que comemos --> Positivo
                     if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
@@ -241,6 +386,11 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionJugador += 30;
                 }
             }
+
+            // Si metemos una ficha.
+            if (st.isGoalMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 25;
+            }
         }
         
         // Ahora calculo la misma heurística para el oponente.
@@ -248,27 +398,11 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
         for (int i = 0; i < coloresOponente.size(); i++) {
             color c = coloresOponente[i];
             for (int j = 0; j < num_pieces; j++) {
-                if (st.illegalMove()) {
-                    valoracionOponente += pierde; 
-                }
                 if (st.isSafePiece(c, j)) {
                     valoracionOponente += 10;
                 }
                 if (st.getBoard().getPiece(c, j).get_type() == goal) {
                     valoracionOponente += 20;
-                }
-                Box casillaActual = st.getBoard().getPiece(c, j).get_box();
-                Box casillaInicial = std::get<2>(st.getLastMoves().back());
-                vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
-                bool hayTrampas = false;
-                for (int t = 0; t < trampas.size(); t++) {
-                    if (trampas[t].getType() == banana_trap) {
-                        hayTrampas = true;
-                        t = trampas.size();
-                    }
-                }
-                if (hayTrampas) {
-                    valoracionOponente -= 20;
                 }
                 if (st.getBoard().getPiece(c, j).get_type() == home) {
                     valoracionOponente -= 40;
@@ -276,15 +410,37 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 
                 valoracionOponente += 74 - st.distanceToGoal(c,j);
             }
-            if(st.isEatingMove() and st.getCurrentPlayerId() == oponente){
+
+            if (st.illegalMove()) {
+                valoracionOponente += pierde; 
+            }
+
+            Box casillaActual = std::get<3>(st.getLastMoves().back());
+            Box casillaInicial = std::get<2>(st.getLastMoves().back());
+            vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
+            bool hayTrampas = false;
+            for (int t = 0; t < trampas.size(); t++) {
+                if (trampas[t].getType() == banana_trap) {
+                    hayTrampas = true;
+                    t = trampas.size();
+                }
+            }
+            if (hayTrampas) {
+                valoracionOponente -= 20;
+            }
+
+            if(st.isEatingMove() && st.getCurrentPlayerId() == oponente){
                 if(st.eatenPiece().first == coloresOponente[(i+1)%2]){
                     if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
                         valoracionOponente -= 10;
                     else
                         valoracionOponente += 10;
                 }else{
-                    valoracionJugador += 30;
+                    valoracionOponente += 30;
                 }
+            }
+            if (st.isGoalMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionOponente += 25;
             }
         }
         
