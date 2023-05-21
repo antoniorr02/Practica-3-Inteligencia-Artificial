@@ -212,7 +212,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Si hacemos un movimiento ilegal
-            if (st.illegalMove()) {
+            if (st.illegalMove() && st.getCurrentPlayerId() == jugador) {
                 valoracionJugador += pierde; 
             }
 
@@ -227,17 +227,17 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     t = trampas.size();
                 }
             }
-            if (hayTrampas) {
+            if (hayTrampas && st.getCurrentPlayerId() == jugador) {
                 valoracionJugador -= 20;
             }
 
             // Si usamos un dado especial. (Puede hacer que se utilice champiñón y rayo)
-            if (st.isSpecialDice(st.getLastDice())) {
+            if (st.isSpecialDice(st.getLastDice()) && st.getCurrentPlayerId() == jugador) {
                 valoracionJugador += 5;
             }
 
             // Estrella.
-            if (st.isStarMove()) {
+            if (st.isStarMove() && st.getCurrentPlayerId() == jugador) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -251,7 +251,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionJugador -= 20; // Evitar malgastar la estrella.
                 }
             }
-            if (st.piecesDestroyedByStar().size() > 0) {
+            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 15;
@@ -262,7 +262,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // MegaChampiñón.
-            if (st.()) {
+            if (st.() && st.getCurrentPlayerId() == jugador) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -276,7 +276,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionJugador -= 20; // Evitar malgastar la MegaChampiñón.
                 }
             }
-            if (st.piecesDestroyedByStar().size() > 0) {
+            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 15;
@@ -287,7 +287,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Consigue dado especial.
-            if (st.itemAcquired()) {
+            if (st.itemAcquired() && st.getCurrentPlayerId() == jugador) {
                 valoracionJugador += 10;
             }
 
@@ -411,7 +411,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 valoracionOponente += 74 - st.distanceToGoal(c,j);
             }
 
-            if (st.illegalMove()) {
+            if (st.illegalMove() && st.getCurrentPlayerId() == oponente) {
                 valoracionOponente += pierde; 
             }
 
@@ -425,8 +425,151 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     t = trampas.size();
                 }
             }
-            if (hayTrampas) {
+            if (hayTrampas &&  st.getCurrentPlayerId() == oponente) {
                 valoracionOponente -= 20;
+            }
+
+            // Si usamos un dado especial. (Puede hacer que se utilice champiñón y rayo)
+            if (st.isSpecialDice(st.getLastDice()) && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 5;
+            }
+
+            // Estrella.
+            if (st.isStarMove() && st.getCurrentPlayerId() == oponente) {
+
+                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
+
+                } else if () {
+
+                } else if () {
+
+                } else if () {
+
+                } else {
+                    valoracionOponente -= 20; // Evitar malgastar la estrella.
+                }
+            }
+            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
+                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                    if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 15;
+                    } else {
+                        valoracionOponente += 30;
+                    }
+                }
+            }
+
+            // MegaChampiñón.
+            if (st.() && st.getCurrentPlayerId() == oponente) {
+
+                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
+
+                } else if () {
+
+                } else if () {
+
+                } else if () {
+
+                } else {
+                    valoracionOponente -= 20; // Evitar malgastar la MegaChampiñón.
+                }
+            }
+            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
+                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                    if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 15;
+                    } else {
+                        valoracionOponente += 30;
+                    }
+                }
+            }
+
+            // Consigue dado especial.
+            if (st.itemAcquired() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 10;
+            }
+
+            // Caparazón Azul.
+            if (st.isBlueShellMove() && st.getCurrentPlayerId() == oponente) {
+                if (st.piecesDestroyedByBlueShell().size() == 2) {
+                    if(st.piecesDestroyedByBlueShell()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 20;
+                    } else {
+                        valoracionOponente += 35;
+                    }
+                    if(st.piecesDestroyedByBlueShell()[1].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 20;
+                    } else {
+                        valoracionOponente += 35;
+                    }
+                }
+                if (st.piecesDestroyedByBlueShell().size() == 1) {
+                    if(st.piecesDestroyedByBlueShell()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 20;
+                    } else {
+                        valoracionOponente += 35;
+                    }
+                }
+                if (st.piecesDestroyedByBlueShell().size() == 0) {
+                    valoracionOponente -= 15;
+                }
+            }
+
+            // Fantasma.
+            if (st.isBooMove() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 5;
+            }
+
+            // Cohete.
+            if (st.isBulletMove() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 25;
+                if (st.anyWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionOponente += 5; // Atraviesa barrera.
+                }
+                if (st.anyMegaWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionOponente += 10; // Atraviesa mega-barrera.
+                }
+            }
+
+            // Bocina.
+            if (st.isHornMove() && st.getCurrentPlayerId() == oponente) {
+                if (st.piecesDestroyedByHorn().size() > 0) {
+                    for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
+                        if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
+                            valoracionOponente -= 15;
+                        } else {
+                            valoracionOponente += 30;
+                        }
+                    }
+                } else {
+                    valoracionOponente -= 10; // Evitar malgastarlo.
+                }
+            }
+
+            // Caparazón rojo.
+            if (st.isRedShellMove() && st.getCurrentPlayerId() == oponente) {
+                if (st.piecesDestroyedByRedShell().size() == 2) {
+                    if(st.piecesDestroyedByRedShell()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 15;
+                    } else {
+                        valoracionOponente += 30;
+                    }
+                    if(st.piecesDestroyedByRedShell()[1].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 15;
+                    } else {
+                        valoracionOponente += 30;
+                    }
+                }
+                if (st.piecesDestroyedByRedShell().size() == 1) {
+                    if(st.piecesDestroyedByRedShell()[0].first == coloresOponente[(i+1)%2]){
+                        valoracionOponente -= 20;
+                    } else {
+                        valoracionOponente += 30;
+                    }
+                }
+                if (st.piecesDestroyedByRedShell().size() == 0) {
+                    valoracionOponente -= 10;
+                }
             }
 
             if(st.isEatingMove() && st.getCurrentPlayerId() == oponente){
@@ -439,7 +582,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionOponente += 30;
                 }
             }
-            if (st.isGoalMove() && st.getCurrentPlayerId() == jugador) {
+            if (st.isGoalMove() && st.getCurrentPlayerId() == oponente) {
                 valoracionOponente += 25;
             }
         }
