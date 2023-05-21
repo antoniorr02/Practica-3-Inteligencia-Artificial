@@ -148,10 +148,10 @@ void AIPlayer::thinkFichaMasAdelantada(color &c_piece, int &id_piece, int &dice)
     }
 }
 void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const {
-    // Vamos a mirar todos los posibles movimientos del jugador actual accediendo a los hijos del estado actual.
+    // Vamos a mirar todos los posibles movimientos del jugador actual accediendo a los hijos del st actual.
     // Para ello, vamos a iterar sobre los hijos con la función de Parchis getChildren().
     // Esta función devuelve un objeto de la clase ParchisBros, que es una estructura iterable
-    // sobre la que se pueden recorrer todos los hijos del estado sobre el que se llama.
+    // sobre la que se pueden recorrer todos los hijos del st sobre el que se llama.
     ParchisBros hijos = actual->getChildren();
     bool me_quedo_con_esta_accion = false;
     // La clase ParchisBros viene con un iterador muy útil y sencillo de usar.
@@ -175,8 +175,138 @@ void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const 
     }
 }
 
+double AIPlayer::Heuristica(const Parchis &st, int jugador) {
+    int ganador = st.getWinner();
+    int oponente = (jugador + 1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador) {
+        return gana;
+    } else if (ganador == oponente) {
+        return pierde;
+    } else {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> my_colors = st.getPlayerColors(jugador);
+        vector<color> op_colors = st.getPlayerColors(oponente);
+
+        double valoracionJugador = 0;
+        // Recorro colores de mi jugador.
+        for (int i = 0; i < my_colors.size(); i++) {
+            color c = my_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++) {
+                // Si ponemos una ficha en una casilla segura.
+                if (st.isSafePiece(c, j)) {
+                    valoracionJugador += 5;
+                }
+                // Si mete una ficha:
+                if (st.getBoard().getPiece(c, j).get_type() == goal) {
+                    valoracionJugador += 10;
+                }
+                // Si nos comen:
+                if (st.getBoard().getPiece(c, j).get_type() == home) {
+                    valoracionJugador -= 20;
+                }
+                
+                // Conforme más cerca estemos de la meta más importancia tendrá que se sigan las normas.
+                valoracionJugador += 100 - st.distanceToGoal(c,j);
+                
+            }
+            
+            if(st.isEatingMove() and st.getCurrentPlayerId() == jugador){
+                if(st.eatenPiece().first == my_colors[(i+1)%2]){
+                    valoracionJugador += 9;
+                }else{
+                    valoracionJugador += 15;
+                }
+            }
+        }
+        
+        // Ahora calculo la misma heurística para el oponente.
+        double valoracionOponente = 0;
+        for (int i = 0; i < op_colors.size(); i++) {
+            color c = op_colors[i];
+            for (int j = 0; j < num_pieces; j++) {
+                if (st.isSafePiece(c, j)) {
+                    valoracionOponente += 5;
+                }
+                if (st.getBoard().getPiece(c, j).get_type() == goal) {
+                    valoracionOponente += 10;
+                }
+                if (st.getBoard().getPiece(c, j).get_type() == home) {
+                    valoracionOponente -= 20;
+                }
+                
+                valoracionOponente += 100 - st.distanceToGoal(c,j);
+            }
+            if(st.isEatingMove() and st.getCurrentPlayerId() == oponente){
+                if(st.eatenPiece().first == op_colors[(i+1)%2]){
+                    valoracionJugador += 9;
+                }else{
+                    valoracionJugador += 15;
+                }
+            }
+        }
+        
+        // El valor final de la heurística será la diferencia entre mi valoración y la de mi oponente.
+        return valoracionJugador - valoracionOponente;
+    }
+}
+
+double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundidad, int profundidadMaxima, color &c_piece, int &id_piece, int &dice, double alpha, double beta, double (*Heuristica)(const Parchis &, int)) const {
+    // Si alcanzamos la profundidad máxima (6) o llegamos a una situación de victoria evaluamos el st actual con la heurística.
+    if (profundidad == profundidadMaxima || actual.gameOver()) {
+        return Heuristica(actual, jugador);
+    }
+
+    ParchisBros hijos = actual.getChildren();
+    bool me_quedo_con_esta_accion = false;
+
+    if (jugador == actual.getCurrentPlayerId()) { // Si estamos en un nodo MAX.
+        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end() && !me_quedo_con_esta_accion; ++it){
+            Parchis siguiente_hijo = *it;
+            double eval = Poda_AlfaBeta(siguiente_hijo, jugador, profundidad + 1, profundidadMaxima, c_piece, id_piece, dice, alpha, beta, Heuristica);
+
+            if(eval > alpha){
+                alpha = eval; //Ya que queremos coger el valor MAXIMO de cada nodo
+                me_quedo_con_esta_accion = true;
+                c_piece = it.getMovedColor(); // Guardo color de la ficha movida.
+                id_piece = it.getMovedPieceId(); // Guardo id de la ficha movida.
+                dice = it.getMovedDiceValue(); // Guardo número de dado movido.                
+            }
+
+            if (beta <= alpha) {
+                break;
+            } // En este caso no seguimos evaluando dicha rama.
+
+            hijos = siguiente_hijo.getChildren();
+        }
+
+        return alpha;
+    } else { // Estamos en un nodo MIN.
+        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end() && !me_quedo_con_esta_accion; ++it){    
+            Parchis siguiente_hijo = *it;        
+            double eval = Poda_AlfaBeta(siguiente_hijo, jugador, profundidad + 1, profundidadMaxima, c_piece, id_piece, dice, alpha, beta, Heuristica);
+            
+            if(eval < beta){
+                beta = eval;
+                me_quedo_con_esta_accion = true;
+            }
+            
+            if(alpha >= beta){
+                break;
+            }
+
+            hijos = siguiente_hijo.getChildren();
+        }
+        
+        return beta;
+    }
+}
+
+
 void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
-    switch(id){
+    /*switch(id){
         case 0:
             thinkAleatorio(c_piece, id_piece, dice);
         break;
@@ -189,12 +319,12 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
         case 3:
             thinkMejorOpcion(c_piece, id_piece, dice);
         break;
-    }
+    }*/
 
-    /*
+
     // El siguiente código se proporciona como sugerencia para iniciar la implementación del agente.
 
-    double valor; // Almacena el valor con el que se etiqueta el estado tras el proceso de busqueda.
+    double valor; // Almacena el valor con el que se etiqueta el st tras el proceso de busqueda.
     double alpha = menosinf, beta = masinf; // Cotas iniciales de la poda AlfaBeta
     // Llamada a la función para la poda (los parámetros son solo una sugerencia, se pueden modificar).
     valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
@@ -208,26 +338,26 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
             valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
             break;
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion1);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
             break;
         case 2:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, MiValoracion2);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
             break;
     }
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
 
-    */
+
 }
 
 
 
 
-double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
+double AIPlayer::ValoracionTest(const Parchis &st, int jugador)
 {
     // Heurística de prueba proporcionada para validar el funcionamiento del algoritmo de búsqueda.
 
 
-    int ganador = estado.getWinner();
+    int ganador = st.getWinner();
     int oponente = (jugador+1) % 2;
 
     // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
@@ -242,11 +372,11 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
     else
     {
         // Colores que juega mi jugador y colores del oponente
-        vector<color> my_colors = estado.getPlayerColors(jugador);
-        vector<color> op_colors = estado.getPlayerColors(oponente);
+        vector<color> my_colors = st.getPlayerColors(jugador);
+        vector<color> op_colors = st.getPlayerColors(oponente);
 
         // Recorro todas las fichas de mi jugador
-        int puntuacion_jugador = 0;
+        int valoracionJugador = 0;
         // Recorro colores de mi jugador.
         for (int i = 0; i < my_colors.size(); i++)
         {
@@ -255,19 +385,19 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
             for (int j = 0; j < num_pieces; j++)
             {
                 // Valoro positivamente que la ficha esté en casilla segura o meta.
-                if (estado.isSafePiece(c, j))
+                if (st.isSafePiece(c, j))
                 {
-                    puntuacion_jugador++;
+                    valoracionJugador++;
                 }
-                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                else if (st.getBoard().getPiece(c, j).get_box().type == goal)
                 {
-                    puntuacion_jugador += 5;
+                    valoracionJugador += 5;
                 }
             }
         }
 
         // Recorro todas las fichas del oponente
-        int puntuacion_oponente = 0;
+        int valoracionOponente = 0;
         // Recorro colores del oponente.
         for (int i = 0; i < op_colors.size(); i++)
         {
@@ -275,20 +405,19 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++)
             {
-                if (estado.isSafePiece(c, j))
+                if (st.isSafePiece(c, j))
                 {
                     // Valoro negativamente que la ficha esté en casilla segura o meta.
-                    puntuacion_oponente++;
+                    valoracionOponente++;
                 }
-                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                else if (st.getBoard().getPiece(c, j).get_box().type == goal)
                 {
-                    puntuacion_oponente += 5;
+                    valoracionOponente += 5;
                 }
             }
         }
 
         // Devuelvo la puntuación de mi jugador menos la puntuación del oponente.
-        return puntuacion_jugador - puntuacion_oponente;
+        return valoracionJugador - valoracionOponente;
     }
 }
-

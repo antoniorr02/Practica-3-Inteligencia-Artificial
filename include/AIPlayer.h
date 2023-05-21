@@ -57,6 +57,8 @@ class AIPlayer: public Player{
         void thinkAleatorioMasInteligente(color &c_piece, int &id_piece, int &dice) const;
         void thinkFichaMasAdelantada(color &c_piece, int &id_piece, int &dice) const;
         void thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const;
+        double Poda_AlfaBeta(const Parchis &actual, int jugador, int profundidad, int profundidadMaxima, color &c_piece, int &id_piece, int &dice, double alpha, double beta, double (*heuristica)(const Parchis &, int)) const;
+        double Heuristica(const Parchis &estado, int jugador);
 
         /**
          * @brief Método que determina si el player es inteligente (decide el mejor movimiento)
