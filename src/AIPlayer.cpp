@@ -186,64 +186,104 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
         return pierde;
     } else {
         // Colores que juega mi jugador y colores del oponente
-        vector<color> my_colors = st.getPlayerColors(jugador);
-        vector<color> op_colors = st.getPlayerColors(oponente);
+        vector<color> coloresJugador = st.getPlayerColors(jugador);
+        vector<color> coloresOponente = st.getPlayerColors(oponente);
 
         double valoracionJugador = 0;
         // Recorro colores de mi jugador.
-        for (int i = 0; i < my_colors.size(); i++) {
-            color c = my_colors[i];
+        for (int i = 0; i < coloresJugador.size(); i++) {
+            color c = coloresJugador[i];
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++) {
+                // Si hacemos un movimiento ilegal
+                if (st.illegalMove()) {
+                    valoracionJugador += pierde; 
+                }
                 // Si ponemos una ficha en una casilla segura.
                 if (st.isSafePiece(c, j)) {
-                    valoracionJugador += 5;
+                    valoracionJugador += 10;
                 }
                 // Si mete una ficha:
                 if (st.getBoard().getPiece(c, j).get_type() == goal) {
-                    valoracionJugador += 10;
+                    valoracionJugador += 20;
+                }
+                // Si caemos en una trampa: DUDA.
+                Box casillaActual = st.getBoard().getPiece(c, j).get_box();
+                Box casillaInicial = std::get<2>(st.getLastMoves().back());
+                vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
+                bool hayTrampas = false;
+                for (int t = 0; t < trampas.size(); t++) {
+                    if (trampas[t].getType() == banana_trap) {
+                        hayTrampas = true;
+                        t = trampas.size();
+                    }
+                }
+                if (hayTrampas) {
+                    valoracionJugador -= 20;
                 }
                 // Si nos comen:
                 if (st.getBoard().getPiece(c, j).get_type() == home) {
-                    valoracionJugador -= 20;
-                }
-                
-                // Conforme más cerca estemos de la meta más importancia tendrá que se sigan las normas.
-                valoracionJugador += 100 - st.distanceToGoal(c,j);
+                    valoracionJugador -= 40;
+                }                
+                // Mayor importancia a las fichas más cercanas a la meta.
+                valoracionJugador += 74 - st.distanceToGoal(c,j);
                 
             }
-            
+
             if(st.isEatingMove() and st.getCurrentPlayerId() == jugador){
-                if(st.eatenPiece().first == my_colors[(i+1)%2]){
-                    valoracionJugador += 9;
-                }else{
-                    valoracionJugador += 15;
+                if(st.eatenPiece().first == coloresJugador[(i+1)%2]){
+                    // Si nos comemos pero estamos más cerca de ganar con el color que comemos --> Positivo
+                    if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
+                        valoracionJugador -= 10;
+                    else
+                        valoracionJugador += 10;
+                } else {
+                    valoracionJugador += 30;
                 }
             }
         }
         
         // Ahora calculo la misma heurística para el oponente.
         double valoracionOponente = 0;
-        for (int i = 0; i < op_colors.size(); i++) {
-            color c = op_colors[i];
+        for (int i = 0; i < coloresOponente.size(); i++) {
+            color c = coloresOponente[i];
             for (int j = 0; j < num_pieces; j++) {
-                if (st.isSafePiece(c, j)) {
-                    valoracionOponente += 5;
+                if (st.illegalMove()) {
+                    valoracionOponente += pierde; 
                 }
-                if (st.getBoard().getPiece(c, j).get_type() == goal) {
+                if (st.isSafePiece(c, j)) {
                     valoracionOponente += 10;
                 }
-                if (st.getBoard().getPiece(c, j).get_type() == home) {
+                if (st.getBoard().getPiece(c, j).get_type() == goal) {
+                    valoracionOponente += 20;
+                }
+                Box casillaActual = st.getBoard().getPiece(c, j).get_box();
+                Box casillaInicial = std::get<2>(st.getLastMoves().back());
+                vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
+                bool hayTrampas = false;
+                for (int t = 0; t < trampas.size(); t++) {
+                    if (trampas[t].getType() == banana_trap) {
+                        hayTrampas = true;
+                        t = trampas.size();
+                    }
+                }
+                if (hayTrampas) {
                     valoracionOponente -= 20;
                 }
+                if (st.getBoard().getPiece(c, j).get_type() == home) {
+                    valoracionOponente -= 40;
+                }
                 
-                valoracionOponente += 100 - st.distanceToGoal(c,j);
+                valoracionOponente += 74 - st.distanceToGoal(c,j);
             }
             if(st.isEatingMove() and st.getCurrentPlayerId() == oponente){
-                if(st.eatenPiece().first == op_colors[(i+1)%2]){
-                    valoracionJugador += 9;
+                if(st.eatenPiece().first == coloresOponente[(i+1)%2]){
+                    if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
+                        valoracionOponente -= 10;
+                    else
+                        valoracionOponente += 10;
                 }else{
-                    valoracionJugador += 15;
+                    valoracionJugador += 30;
                 }
             }
         }
@@ -321,16 +361,10 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
         break;
     }*/
 
-
-    // El siguiente código se proporciona como sugerencia para iniciar la implementación del agente.
-
     double valor; // Almacena el valor con el que se etiqueta el st tras el proceso de busqueda.
     double alpha = menosinf, beta = masinf; // Cotas iniciales de la poda AlfaBeta
-    // Llamada a la función para la poda (los parámetros son solo una sugerencia, se pueden modificar).
     valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
-
-    // ----------------------------------------------------------------- //
 
     // Si quiero poder manejar varias heurísticas, puedo usar la variable id del agente para usar una u otra.
     switch(id){
@@ -372,15 +406,15 @@ double AIPlayer::ValoracionTest(const Parchis &st, int jugador)
     else
     {
         // Colores que juega mi jugador y colores del oponente
-        vector<color> my_colors = st.getPlayerColors(jugador);
-        vector<color> op_colors = st.getPlayerColors(oponente);
+        vector<color> coloresJugador = st.getPlayerColors(jugador);
+        vector<color> coloresOponente = st.getPlayerColors(oponente);
 
         // Recorro todas las fichas de mi jugador
         int valoracionJugador = 0;
         // Recorro colores de mi jugador.
-        for (int i = 0; i < my_colors.size(); i++)
+        for (int i = 0; i < coloresJugador.size(); i++)
         {
-            color c = my_colors[i];
+            color c = coloresJugador[i];
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++)
             {
@@ -399,9 +433,9 @@ double AIPlayer::ValoracionTest(const Parchis &st, int jugador)
         // Recorro todas las fichas del oponente
         int valoracionOponente = 0;
         // Recorro colores del oponente.
-        for (int i = 0; i < op_colors.size(); i++)
+        for (int i = 0; i < coloresOponente.size(); i++)
         {
-            color c = op_colors[i];
+            color c = coloresOponente[i];
             // Recorro las fichas de ese color.
             for (int j = 0; j < num_pieces; j++)
             {
