@@ -237,7 +237,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Estrella.
-            if (st.isStarMove() && st.getCurrentPlayerId() == jugador) {
+           /* if (st.isStarMove() && st.getCurrentPlayerId() == jugador) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -250,7 +250,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 } else {
                     valoracionJugador -= 20; // Evitar malgastar la estrella.
                 }
-            }
+            }*/
             if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
@@ -262,7 +262,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // MegaChampiñón.
-            if (st.() && st.getCurrentPlayerId() == jugador) {
+            /*if (st.() && st.getCurrentPlayerId() == jugador) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -275,7 +275,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 } else {
                     valoracionJugador -= 20; // Evitar malgastar la MegaChampiñón.
                 }
-            }
+            }*/
             if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
@@ -435,7 +435,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Estrella.
-            if (st.isStarMove() && st.getCurrentPlayerId() == oponente) {
+           /* if (st.isStarMove() && st.getCurrentPlayerId() == oponente) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -448,7 +448,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 } else {
                     valoracionOponente -= 20; // Evitar malgastar la estrella.
                 }
-            }
+            }*/
             if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
@@ -460,7 +460,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // MegaChampiñón.
-            if (st.() && st.getCurrentPlayerId() == oponente) {
+          /*  if (st.() && st.getCurrentPlayerId() == oponente) {
 
                 if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
 
@@ -473,7 +473,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 } else {
                     valoracionOponente -= 20; // Evitar malgastar la MegaChampiñón.
                 }
-            }
+            }*/
             if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
                 for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
                     if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
@@ -599,44 +599,39 @@ double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundid
     }
 
     ParchisBros hijos = actual.getChildren();
-    bool me_quedo_con_esta_accion = false;
 
     if (jugador == actual.getCurrentPlayerId()) { // Si estamos en un nodo MAX.
-        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end() && !me_quedo_con_esta_accion; ++it){
+        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end(); ++it){
             Parchis siguiente_hijo = *it;
             double eval = Poda_AlfaBeta(siguiente_hijo, jugador, profundidad + 1, profundidadMaxima, c_piece, id_piece, dice, alpha, beta, Heuristica);
 
             if(eval > alpha){
                 alpha = eval; //Ya que queremos coger el valor MAXIMO de cada nodo
-                me_quedo_con_esta_accion = true;
-                c_piece = it.getMovedColor(); // Guardo color de la ficha movida.
-                id_piece = it.getMovedPieceId(); // Guardo id de la ficha movida.
-                dice = it.getMovedDiceValue(); // Guardo número de dado movido.                
+                if (profundidad == 0) {
+                    c_piece = it.getMovedColor(); // Guardo color de la ficha movida.
+                    id_piece = it.getMovedPieceId(); // Guardo id de la ficha movida.
+                    dice = it.getMovedDiceValue(); // Guardo número de dado movido.                
+                }
             }
 
             if (beta <= alpha) {
                 break;
             } // En este caso no seguimos evaluando dicha rama.
-
-            hijos = siguiente_hijo.getChildren();
         }
 
         return alpha;
     } else { // Estamos en un nodo MIN.
-        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end() && !me_quedo_con_esta_accion; ++it){    
+        for(ParchisBros::Iterator it = hijos.begin(); it != hijos.end(); ++it){    
             Parchis siguiente_hijo = *it;        
             double eval = Poda_AlfaBeta(siguiente_hijo, jugador, profundidad + 1, profundidadMaxima, c_piece, id_piece, dice, alpha, beta, Heuristica);
             
             if(eval < beta){
                 beta = eval;
-                me_quedo_con_esta_accion = true;
             }
             
             if(alpha >= beta){
                 break;
             }
-
-            hijos = siguiente_hijo.getChildren();
         }
         
         return beta;
