@@ -199,13 +199,9 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 if (st.isSafePiece(c, j)) {
                     valoracionJugador += 10;
                 }
-                // Si mete una ficha:
-                if (st.getBoard().getPiece(c, j).get_type() == goal) {
-                    valoracionJugador += 20;
-                }
                 // Si nos comen:
-                if (st.getBoard().getPiece(c, j).get_type() == home) {
-                    valoracionJugador -= 40;
+                if (st.getBoard().getPiece(c, j).get_box().type == home) { //////////////////////// DUDA.
+                    valoracionJugador -= 50;
                 }               
                 // Mayor importancia a las fichas más cercanas a la meta.
                 valoracionJugador += 74 - st.distanceToGoal(c,j);   
@@ -216,7 +212,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 valoracionJugador += pierde; 
             }
 
-            // Si pasamos por una trampa. DUDA
+            // Si pasamos por una trampa. /////////////////////// DUDA
             Box casillaActual = std::get<3>(st.getLastMoves().back());
             Box casillaInicial = std::get<2>(st.getLastMoves().back());
             vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
@@ -237,48 +233,26 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Estrella.
-           /* if (st.isStarMove() && st.getCurrentPlayerId() == jugador) {
-
-                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
-
-                } else if () {
-
-                } else if () {
-
-                } else if () {
-
-                } else {
-                    valoracionJugador -= 20; // Evitar malgastar la estrella.
-                }
-            }*/
-            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
-                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
-                    if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
-                        valoracionJugador -= 15;
-                    } else {
-                        valoracionJugador += 30;
+            if (st.isStarMove() && st.getCurrentPlayerId() == jugador) {
+                if (st.piecesDestroyedByStar().size() > 0) {
+                    for (int d = 0; d < st.piecesDestroyedByStar().size(); d++) {
+                        if(st.piecesDestroyedByStar()[0].first == coloresJugador[(i+1)%2]){
+                            valoracionJugador -= 15;
+                        } else {
+                            valoracionJugador += 30;
+                        }
                     }
                 }
             }
+            
 
             // MegaChampiñón.
-            /*if (st.() && st.getCurrentPlayerId() == jugador) {
+            /*if (st.isMegaMushroom() && st.getCurrentPlayerId() == jugador) {
 
-                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
-
-                } else if () {
-
-                } else if () {
-
-                } else if () {
-
-                } else {
-                    valoracionJugador -= 20; // Evitar malgastar la MegaChampiñón.
-                }
-            }*/
-            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == jugador) {
-                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
-                    if(st.piecesDestroyedByHorn()[0].first == coloresJugador[(i+1)%2]){
+            }*/// DUDA.
+            if (st.piecesCrushedByMegamushroom().size() > 0 && st.getCurrentPlayerId() == jugador) {
+                for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
+                    if(st.piecesCrushedByMegamushroom()[0].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 15;
                     } else {
                         valoracionJugador += 30;
@@ -297,19 +271,19 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     if(st.piecesDestroyedByBlueShell()[0].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 20;
                     } else {
-                        valoracionJugador += 35;
+                        valoracionJugador += 25;
                     }
                     if(st.piecesDestroyedByBlueShell()[1].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 20;
                     } else {
-                        valoracionJugador += 35;
+                        valoracionJugador += 25;
                     }
                 }
                 if (st.piecesDestroyedByBlueShell().size() == 1) {
                     if(st.piecesDestroyedByBlueShell()[0].first == coloresJugador[(i+1)%2]){
                         valoracionJugador -= 20;
                     } else {
-                        valoracionJugador += 35;
+                        valoracionJugador += 25;
                     }
                 }
                 if (st.piecesDestroyedByBlueShell().size() == 0) {
@@ -401,10 +375,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                 if (st.isSafePiece(c, j)) {
                     valoracionOponente += 10;
                 }
-                if (st.getBoard().getPiece(c, j).get_type() == goal) {
-                    valoracionOponente += 20;
-                }
-                if (st.getBoard().getPiece(c, j).get_type() == home) {
+                if (st.getBoard().getPiece(c, j).get_box().type == home) {
                     valoracionOponente -= 40;
                 }
                 
@@ -435,48 +406,26 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Estrella.
-           /* if (st.isStarMove() && st.getCurrentPlayerId() == oponente) {
-
-                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
-
-                } else if () {
-
-                } else if () {
-
-                } else if () {
-
-                } else {
-                    valoracionOponente -= 20; // Evitar malgastar la estrella.
-                }
-            }*/
-            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
-                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
-                    if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
-                        valoracionOponente -= 15;
-                    } else {
-                        valoracionOponente += 30;
+            if (st.isStarMove() && st.getCurrentPlayerId() == oponente) {
+                if (st.piecesDestroyedByStar().size() > 0) {
+                    for (int d = 0; d < st.piecesDestroyedByStar().size(); d++) {
+                        if(st.piecesDestroyedByStar()[0].first == coloresOponente[(i+1)%2]){
+                            valoracionOponente -= 15;
+                        } else {
+                            valoracionOponente += 30;
+                        }
                     }
                 }
             }
+            
 
             // MegaChampiñón.
-          /*  if (st.() && st.getCurrentPlayerId() == oponente) {
+            /*if (st.isMegaMushroom() && st.getCurrentPlayerId() == oponente) {
 
-                if (st.allPiecesBetween(std::get<2>(st.getLastMoves().back()), ).size() >= 4) {
-
-                } else if () {
-
-                } else if () {
-
-                } else if () {
-
-                } else {
-                    valoracionOponente -= 20; // Evitar malgastar la MegaChampiñón.
-                }
-            }*/
-            if (st.piecesDestroyedByStar().size() > 0 && st.getCurrentPlayerId() == oponente) {
-                for (int d = 0; d < st.piecesDestroyedByHorn().size(); d++) {
-                    if(st.piecesDestroyedByHorn()[0].first == coloresOponente[(i+1)%2]){
+            }*/// DUDA.
+            if (st.piecesCrushedByMegamushroom().size() > 0 && st.getCurrentPlayerId() == jugador) {
+                for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
+                    if(st.piecesCrushedByMegamushroom()[0].first == coloresOponente[(i+1)%2]){
                         valoracionOponente -= 15;
                     } else {
                         valoracionOponente += 30;
@@ -617,6 +566,7 @@ double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundid
             if (beta <= alpha) {
                 break;
             } // En este caso no seguimos evaluando dicha rama.
+
         }
 
         return alpha;
