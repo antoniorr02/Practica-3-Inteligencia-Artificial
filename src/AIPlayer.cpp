@@ -204,7 +204,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionJugador -= 50;
                 }               
                 // Mayor importancia a las fichas más cercanas a la meta.
-                valoracionJugador += 74 - st.distanceToGoal(c,j);   
+                //valoracionJugador += 74 - st.distanceToGoal(c,j);   
             }
 
             // Si hacemos un movimiento ilegal
@@ -213,19 +213,22 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
 
             // Si pasamos por una trampa. /////////////////////// DUDA
-            Box casillaActual = std::get<3>(st.getLastMoves().back());
-            Box casillaInicial = std::get<2>(st.getLastMoves().back());
-            vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
-            bool hayTrampas = false;
-            for (int t = 0; t < trampas.size(); t++) {
-                if (trampas[t].getType() == banana_trap) {
-                    hayTrampas = true;
-                    t = trampas.size();
+            /*if (st.getLastMoves().size() > 0) {
+                Box casillaActual = std::get<3>(st.getLastMoves().back());
+                Box casillaInicial = std::get<2>(st.getLastMoves().back());
+                vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
+                bool hayTrampas = false;
+                for (int t = 0; t < trampas.size(); t++) {
+                    if (trampas[t].getType() == banana_trap) {
+                        hayTrampas = true;
+                        t = trampas.size();
+                    }
                 }
-            }
-            if (hayTrampas && st.getCurrentPlayerId() == jugador) {
-                valoracionJugador -= 20;
-            }
+                if (hayTrampas && st.getCurrentPlayerId() == jugador) {
+                    valoracionJugador -= 20;
+                }
+            }**/
+            
 
             // Si usamos un dado especial. (Puede hacer que se utilice champiñón y rayo)
             if (st.isSpecialDice(st.getLastDice()) && st.getCurrentPlayerId() == jugador) {
@@ -247,22 +250,28 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             
 
             // MegaChampiñón.
-            /*if (st.isMegaMushroom() && st.getCurrentPlayerId() == jugador) {
-
-            }*/// DUDA.
-            if (st.piecesCrushedByMegamushroom().size() > 0 && st.getCurrentPlayerId() == jugador) {
-                for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
-                    if(st.piecesCrushedByMegamushroom()[0].first == coloresJugador[(i+1)%2]){
-                        valoracionJugador -= 15;
-                    } else {
-                        valoracionJugador += 30;
+            if (st.isMegaMushroomMove() && st.getCurrentPlayerId() == jugador) {
+                if (st.piecesCrushedByMegamushroom().size() > 0) {
+                    for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
+                        if(st.piecesCrushedByMegamushroom()[0].first == coloresJugador[(i+1)%2]){
+                            valoracionJugador -= 15;
+                        } else {
+                            valoracionJugador += 30;
+                        }
                     }
                 }
             }
+            
 
             // Consigue dado especial.
             if (st.itemAcquired() && st.getCurrentPlayerId() == jugador) {
-                valoracionJugador += 10;
+                if (st.getItemAcquired() == star || st.getItemAcquired() == bullet) {  // dar puntuación a cada objeto.
+                    valoracionJugador += 25;
+                } else if (st.getItemAcquired() == mega_mushroom || st.getItemAcquired() == red_shell || st.getItemAcquired() == blue_shell) { 
+                    valoracionJugador += 15;
+                } else {
+                    valoracionJugador += 10;
+                }
             }
 
             // Caparazón Azul.
@@ -351,13 +360,13 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             // Si nos comemos una ficha.
             if(st.isEatingMove() && st.getCurrentPlayerId() == jugador){
                 if(st.eatenPiece().first == coloresJugador[(i+1)%2]){
-                    // Si nos comemos pero estamos más cerca de ganar con el color que comemos --> Positivo
+                    // Si nos comemos una ficha de nuestro equipo pero estamos más cerca de ganar con el color que comemos --> Positivo
                     if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
                         valoracionJugador -= 10;
                     else
                         valoracionJugador += 10;
                 } else {
-                    valoracionJugador += 30;
+                    valoracionJugador += 35;
                 }
             }
 
@@ -379,14 +388,14 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     valoracionOponente -= 40;
                 }
                 
-                valoracionOponente += 74 - st.distanceToGoal(c,j);
+               // valoracionOponente += 74 - st.distanceToGoal(c,j);
             }
 
             if (st.illegalMove() && st.getCurrentPlayerId() == oponente) {
                 valoracionOponente += pierde; 
             }
 
-            Box casillaActual = std::get<3>(st.getLastMoves().back());
+           /* Box casillaActual = std::get<3>(st.getLastMoves().back());
             Box casillaInicial = std::get<2>(st.getLastMoves().back());
             vector<BoardTrap> trampas = st.anyTrap(casillaInicial, casillaActual);
             bool hayTrampas = false;
@@ -398,7 +407,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
             }
             if (hayTrampas &&  st.getCurrentPlayerId() == oponente) {
                 valoracionOponente -= 20;
-            }
+            }*/
 
             // Si usamos un dado especial. (Puede hacer que se utilice champiñón y rayo)
             if (st.isSpecialDice(st.getLastDice()) && st.getCurrentPlayerId() == oponente) {
@@ -416,26 +425,31 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                         }
                     }
                 }
-            }
-            
+            }            
 
             // MegaChampiñón.
-            /*if (st.isMegaMushroom() && st.getCurrentPlayerId() == oponente) {
-
-            }*/// DUDA.
-            if (st.piecesCrushedByMegamushroom().size() > 0 && st.getCurrentPlayerId() == jugador) {
-                for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
-                    if(st.piecesCrushedByMegamushroom()[0].first == coloresOponente[(i+1)%2]){
-                        valoracionOponente -= 15;
-                    } else {
-                        valoracionOponente += 30;
+            if (st.isMegaMushroomMove() && st.getCurrentPlayerId() == oponente) {
+                if (st.piecesCrushedByMegamushroom().size() > 0) {
+                    for (int d = 0; d < st.piecesCrushedByMegamushroom().size(); d++) {
+                        if(st.piecesCrushedByMegamushroom()[0].first == coloresOponente[(i+1)%2]){
+                            valoracionOponente -= 15;
+                        } else {
+                            valoracionOponente += 30;
+                        }
                     }
                 }
             }
+            
 
             // Consigue dado especial.
             if (st.itemAcquired() && st.getCurrentPlayerId() == oponente) {
-                valoracionOponente += 10;
+                if (st.getItemAcquired() == star || st.getItemAcquired() == bullet) {  // dar puntuación a cada objeto.
+                    valoracionOponente += 25;
+                } else if (st.getItemAcquired() == mega_mushroom || st.getItemAcquired() == red_shell || st.getItemAcquired() == blue_shell) { 
+                    valoracionOponente += 15;
+                } else {
+                    valoracionOponente += 10;
+                }
             }
 
             // Caparazón Azul.
@@ -528,7 +542,7 @@ double AIPlayer::Heuristica(const Parchis &st, int jugador) {
                     else
                         valoracionOponente += 10;
                 }else{
-                    valoracionOponente += 30;
+                    valoracionOponente += 35;
                 }
             }
             if (st.isGoalMove() && st.getCurrentPlayerId() == oponente) {
@@ -613,7 +627,7 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
     // Si quiero poder manejar varias heurísticas, puedo usar la variable id del agente para usar una u otra.
     switch(id){
         case 0:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, Heuristica);
             break;
         case 1:
             valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
