@@ -19,7 +19,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 # Enable debug symbols by default
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug 
+  set(CMAKE_BUILD_TYPE Release 
     CACHE STRING 
       "Choose the type of build (Debug or Release)" 
       FORCE

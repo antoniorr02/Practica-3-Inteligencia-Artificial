@@ -175,6 +175,267 @@ void AIPlayer::thinkMejorOpcion(color &c_piece, int &id_piece, int &dice) const 
     }
 }
 
+double AIPlayer::Heuristica3(const Parchis &estado, int jugador) {
+// Heurística de prueba proporcionada para validar el funcionamiento del algoritmo de búsqueda.
+
+
+    int ganador = estado.getWinner();
+    int oponente = (jugador + 1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador)
+    {
+        return gana;
+    }
+    else if (ganador == oponente)
+    {
+        return pierde;
+    }
+    else
+    {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> my_colors = estado.getPlayerColors(jugador);
+        vector<color> op_colors = estado.getPlayerColors(oponente);
+
+        // Recorro todas las fichas de mi jugador
+        int puntuacion_jugador = 0;
+        // Recorro colores de mi jugador.
+        for (int i = 0; i < my_colors.size(); i++)
+        {
+            color c = my_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_jugador++;
+                }
+                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                {
+                    puntuacion_jugador += 5;
+                }
+            }
+            // Si nos comemos una ficha.
+            if(estado.isEatingMove() && estado.getCurrentPlayerId() == jugador){
+                if(estado.eatenPiece().first != my_colors[(i+1)%2]){
+                    puntuacion_jugador += 3;
+                }
+            }
+
+            if (estado.piecesDestroyedLastMove().size() > 0 && estado.getCurrentPlayerId() == jugador) {
+                for (int p = 0; p < estado.piecesDestroyedLastMove().size(); p++) {
+                    if (estado.piecesDestroyedLastMove()[p].first != my_colors[(i+1)%2]) {
+                        puntuacion_jugador++;
+                    }
+                }
+            }
+        }
+
+        // Recorro todas las fichas del oponente
+        int puntuacion_oponente = 0;
+        // Recorro colores del oponente.
+        for (int i = 0; i < op_colors.size(); i++)
+        {
+            color c = op_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {
+                if (estado.isSafePiece(c, j))
+                {
+                    // Valoro negativamente que la ficha esté en casilla segura o meta.
+                    puntuacion_oponente++;
+                }
+                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                {
+                    puntuacion_oponente += 5;
+                }
+            }
+            // Si nos comemos una ficha.
+            if(estado.isEatingMove() && estado.getCurrentPlayerId() == oponente){
+                if(estado.eatenPiece().first != op_colors[(i+1)%2]){
+                    puntuacion_oponente += 3;
+                }
+            }
+
+            if (estado.piecesDestroyedLastMove().size() > 0 && estado.getCurrentPlayerId() == oponente) {
+                for (int p = 0; p < estado.piecesDestroyedLastMove().size(); p++) {
+                    if (estado.piecesDestroyedLastMove()[p].first != op_colors[(i+1)%2]) {
+                        puntuacion_oponente++;
+                    }
+                }
+            }
+        }
+
+        // Devuelvo la puntuación de mi jugador menos la puntuación del oponente.
+        return puntuacion_jugador - puntuacion_oponente;
+    }
+}
+
+
+double AIPlayer::Heuristica2(const Parchis &st, int jugador) {
+    int ganador = st.getWinner();
+    int oponente = (jugador + 1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador) {
+        return gana;
+    } else if (ganador == oponente) {
+        return pierde;
+    } else {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> coloresJugador = st.getPlayerColors(jugador);
+        vector<color> coloresOponente = st.getPlayerColors(oponente);
+
+        double valoracionJugador = 0;
+        // Recorro colores de mi jugador.
+        for (int i = 0; i < coloresJugador.size(); i++) {
+            color c = coloresJugador[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++) {
+                // Si ponemos una ficha en una casilla segura.
+                if (st.isSafePiece(c, j)) {
+                    valoracionJugador += 10;
+                }
+                // Si nos comen:
+                if (st.getBoard().getPiece(c, j).get_box().type == home) { //////////////////////// DUDA.
+                    valoracionJugador -= 50;
+                }                
+            }            
+
+            // Consigue dado especial.
+            if (st.itemAcquired() && st.getCurrentPlayerId() == jugador) {
+                if (st.getItemAcquired() == star || st.getItemAcquired() == bullet) {  // dar puntuación a cada objeto.
+                    valoracionJugador += 25;
+                } else if (st.getItemAcquired() == mega_mushroom || st.getItemAcquired() == red_shell || st.getItemAcquired() == blue_shell) { 
+                    valoracionJugador += 15;
+                } else {
+                    valoracionJugador += 10;
+                }
+            }
+
+            // Fantasma.
+            if (st.isBooMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 15;
+            }
+
+            // Cohete.
+            if (st.isBulletMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 35;
+                /*if (st.anyWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionJugador += 10; // Atraviesa barrera.
+                }
+                if (st.anyMegaWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionJugador += 20; // Atraviesa mega-barrera.
+                }*/
+            }
+ 
+            // Si nos comemos una ficha.
+            if(st.isEatingMove() && st.getCurrentPlayerId() == jugador){
+                if(st.eatenPiece().first == coloresJugador[(i+1)%2]){
+                    // Si nos comemos una ficha de nuestro equipo pero estamos más cerca de ganar con el color que comemos --> Positivo
+                    if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
+                        valoracionJugador -= 10;
+                    else
+                        valoracionJugador += 10;
+                } else {
+                    valoracionJugador += 100;
+                }
+            }
+
+            if (st.piecesDestroyedLastMove().size() > 0) {
+                for (int p = 0; p < st.piecesDestroyedLastMove().size(); p++) {
+                    if (st.piecesDestroyedLastMove()[p].first != coloresJugador[(i+1)%2]) {
+                        valoracionJugador += 20;
+                    }
+                }
+            }
+
+            // Si metemos una ficha.
+            if (st.isGoalMove() && st.getCurrentPlayerId() == jugador) {
+                valoracionJugador += 40;
+            }
+        }
+
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
+        // Ahora calculo la misma heurística para el oponente.
+        double valoracionOponente = 0;
+        // Recorro colores de mi oponente.
+        for (int i = 0; i < coloresOponente.size(); i++) {
+            color c = coloresOponente[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++) {
+                // Si ponemos una ficha en una casilla segura.
+                if (st.isSafePiece(c, j)) {
+                    valoracionOponente += 10;
+                }
+                // Si nos comen:
+                if (st.getBoard().getPiece(c, j).get_box().type == home) { 
+                    valoracionOponente -= 50;
+                }                
+            }            
+
+            // Consigue dado especial.
+            if (st.itemAcquired() && st.getCurrentPlayerId() == oponente) {
+                if (st.getItemAcquired() == star || st.getItemAcquired() == bullet) {  // dar puntuación a cada objeto.
+                    valoracionOponente += 25;
+                } else if (st.getItemAcquired() == mega_mushroom || st.getItemAcquired() == red_shell || st.getItemAcquired() == blue_shell) { 
+                    valoracionOponente += 15;
+                } else {
+                    valoracionOponente += 10;
+                }
+            }
+
+            // Fantasma.
+            if (st.isBooMove() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 15;
+            }
+
+            // Cohete.
+            if (st.isBulletMove() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 35;
+                /*if (st.anyWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionOponente += 10; // Atraviesa barrera.
+                }
+                if (st.anyMegaWall(std::get<2>(st.getLastMoves().back()), std::get<3>(st.getLastMoves().back())).size() > 0) {
+                    valoracionOponente += 20; // Atraviesa mega-barrera.
+                }*/
+            }
+ 
+            // Si nos comemos una ficha.
+            if(st.isEatingMove() && st.getCurrentPlayerId() == oponente){
+                if(st.eatenPiece().first == coloresOponente[(i+1)%2]){
+                    // Si nos comemos una ficha de nuestro equipo pero estamos más cerca de ganar con el color que comemos --> Positivo
+                    if (st.piecesAtGoal(st.eatenPiece().first) > st.piecesAtGoal(st.getCurrentColor()))
+                        valoracionOponente -= 10;
+                    else
+                        valoracionOponente += 10;
+                } else {
+                    valoracionOponente += 100;
+                }
+            }
+
+            if (st.piecesDestroyedLastMove().size() > 0) {
+                for (int p = 0; p < st.piecesDestroyedLastMove().size(); p++) {
+                    if (st.piecesDestroyedLastMove()[p].first != coloresOponente[(i+1)%2]) {
+                        valoracionOponente += 20;
+                    }
+                }
+            }
+
+            // Si metemos una ficha.
+            if (st.isGoalMove() && st.getCurrentPlayerId() == oponente) {
+                valoracionOponente += 40;
+            }
+        }
+        
+        // El valor final de la heurística será la diferencia entre mi valoración y la de mi oponente.
+        return valoracionJugador - valoracionOponente;
+    }
+}
+
 double AIPlayer::Heuristica(const Parchis &st, int jugador) {
     int ganador = st.getWinner();
     int oponente = (jugador + 1) % 2;
@@ -602,6 +863,113 @@ double AIPlayer::Poda_AlfaBeta(const Parchis &actual, int jugador, int profundid
     }
 }
 
+double AIPlayer::Heuristica4(const Parchis &st, int jugador) {
+    int ganador = st.getWinner();
+    int oponente = (jugador+1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador) {
+        return gana;
+    } else if (ganador == oponente) {
+        return pierde;
+    } else {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> coloresJugador = st.getPlayerColors(jugador);
+        vector<color> coloresOponente = st.getPlayerColors(oponente);
+
+        // Recorro todas las fichas de mi jugador
+        int valoracionJugador = 0;
+        // Recorro colores de mi jugador.
+        for (int i = 0; i < coloresJugador.size(); i++) {
+            color c = coloresJugador[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++) {
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (st.isSafePiece(c, j)) {
+                    valoracionJugador++;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == goal) {
+                    valoracionJugador += 5;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == home) { // Nos comen.
+                    valoracionJugador -= 3;
+                }
+            }
+
+            // Si nos comemos una ficha.
+            if(st.isEatingMove() && st.getCurrentPlayerId() == jugador){
+                if(st.eatenPiece().first != coloresJugador[(i+1)%2]){
+                    valoracionJugador += 6;
+                } else {
+                    valoracionJugador -= 2;
+                }
+            }
+
+            if (st.piecesDestroyedLastMove().size() > 0 && st.getCurrentPlayerId() == jugador) {
+                for (int p = 0; p < st.piecesDestroyedLastMove().size(); p++) {
+                    if (st.piecesDestroyedLastMove()[p].first != coloresJugador[(i+1)%2]) {
+                        valoracionJugador+=2;
+                    }
+                }
+            }
+        }
+
+        // Consigue dado especial.
+        if (st.itemAcquired() && st.getCurrentPlayerId() == jugador) {
+            if (st.getItemAcquired() == star || st.getItemAcquired() == bullet || st.getItemAcquired() == horn) {  // dar puntuación a cada objeto.
+                valoracionJugador += 2;
+            } else {
+                valoracionJugador += 1;
+            }
+        }
+
+        // Recorro todas las fichas del oponente
+        int valoracionOponente = 0;
+        // Recorro colores del oponente.
+        for (int i = 0; i < coloresOponente.size(); i++) {
+            color c = coloresOponente[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++) {
+                if (st.isSafePiece(c, j)) {
+                    // Valoro negativamente que la ficha esté en casilla segura o meta.
+                    valoracionOponente++;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == goal) {
+                    valoracionOponente += 5;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == home) {
+                    valoracionOponente -= 3;
+                }
+            }
+
+            // Si nos comemos una ficha.
+            if(st.isEatingMove() && st.getCurrentPlayerId() == oponente){
+                if(st.eatenPiece().first != coloresOponente[(i+1)%2]){
+                    valoracionOponente += 6;
+                } else {
+                    valoracionOponente -= 2;
+                }
+            }
+
+            if (st.piecesDestroyedLastMove().size() > 0 && st.getCurrentPlayerId() == oponente) {
+                for (int p = 0; p < st.piecesDestroyedLastMove().size(); p++) {
+                    if (st.piecesDestroyedLastMove()[p].first != coloresOponente[(i+1)%2]) {
+                        valoracionOponente+=2;
+                    }
+                }
+            }
+        }
+
+        // Consigue dado especial.
+        if (st.itemAcquired() && st.getCurrentPlayerId() == oponente) {
+            if (st.getItemAcquired() == star || st.getItemAcquired() == bullet || st.getItemAcquired() == horn) {  // dar puntuación a cada objeto.
+                valoracionOponente += 2;
+            } else {
+                valoracionOponente += 1;
+            }
+        }
+
+        // Devuelvo la puntuación de mi jugador menos la puntuación del oponente.
+        return valoracionJugador - valoracionOponente;
+    }
+}
+
 
 void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
     /*switch(id){
@@ -621,19 +989,18 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const {
 
     double valor; // Almacena el valor con el que se etiqueta el st tras el proceso de busqueda.
     double alpha = menosinf, beta = masinf; // Cotas iniciales de la poda AlfaBeta
-    valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
 
     // Si quiero poder manejar varias heurísticas, puedo usar la variable id del agente para usar una u otra.
     switch(id){
         case 0:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, Heuristica);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
             break;
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, Heuristica4);
             break;
         case 2:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, Heuristica3);
             break;
     }
     cout << "Valor MiniMax: " << valor << "  Accion: " << str(c_piece) << " " << id_piece << " " << dice << endl;
