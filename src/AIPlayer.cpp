@@ -1132,10 +1132,10 @@ double AIPlayer::HeuristicaNinja1_2(const Parchis &st, int jugador) {
                 if (st.isSafePiece(c, j)) {
                     valoracionJugador++;
                 } else if (st.getBoard().getPiece(c, j).get_box().type == goal) {
-                    valoracionJugador += 5;
-                } /*else if (st.getBoard().getPiece(c, j).get_box().type == home) { // Nos comen.
-                    valoracionJugador -= 3;
-                }*/
+                    valoracionJugador += 10;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == home) { // Nos comen.
+                    valoracionJugador -= 5;
+                }
                 valoracionJugador -= st.distanceToGoal(c,j);
             }
         }
@@ -1179,10 +1179,10 @@ double AIPlayer::HeuristicaNinja1_2(const Parchis &st, int jugador) {
                     // Valoro negativamente que la ficha esté en casilla segura o meta.
                     valoracionOponente++;
                 } else if (st.getBoard().getPiece(c, j).get_box().type == goal) {
-                    valoracionOponente += 5;
-                } /*else if (st.getBoard().getPiece(c, j).get_box().type == home) {
-                    valoracionOponente -= 3;
-                }*/
+                    valoracionOponente += 10;
+                } else if (st.getBoard().getPiece(c, j).get_box().type == home) {
+                    valoracionOponente -= 4;
+                }
                 valoracionOponente -= st.distanceToGoal(c,j);
             }
         }
