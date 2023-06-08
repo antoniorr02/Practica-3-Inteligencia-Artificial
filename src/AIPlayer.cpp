@@ -252,31 +252,12 @@ double AIPlayer::HeuristicaDefinitiva(const Parchis &st, int jugador) {
                 } else if (st.getBoard().getPiece(c, j).get_box().type == goal) {
                     valoracionJugador += 15;
                 } else if (st.getBoard().getPiece(c, j).get_box().type == home) { // Nos comen.
-                    valoracionJugador -= 10; // NOTA: Si cambio esto ahora mismo por un 5 pasa todos los test menos el ninja 3 (ni ida ni vuelta)
+                    valoracionJugador -= 10;
                 }
                 valoracionJugador -= st.distanceToGoal(c,j);
                 puntuacionColorJugador[i] += st.distanceToGoal(c, j);
             }
         }
-
-       /* // Si nos comemos una ficha.
-        if(st.isEatingMove() && st.getCurrentPlayerId() == jugador){
-            if(st.eatenPiece().first != coloresJugador[0] && st.eatenPiece().first != coloresJugador[1]){
-                valoracionJugador += 5;
-            } else {
-                valoracionJugador -= 5;
-            }
-        }
-
-        if (st.piecesDestroyedLastMove().size() > 0 && st.getCurrentPlayerId() == jugador) {
-            for (int p = 0; p < st.piecesDestroyedLastMove().size(); p++) {
-                if (st.piecesDestroyedLastMove()[p].first != coloresJugador[0] && st.piecesDestroyedLastMove()[p].first != coloresJugador[1]) {
-                    valoracionJugador+=3;
-                } else {
-                    valoracionJugador-=3;
-                }
-            }
-        }*/
 
         // Consigue dado especial.
         if (st.itemAcquired() && st.getCurrentPlayerId() == jugador) {
